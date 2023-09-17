@@ -57,7 +57,7 @@ class _LocationScreenState extends State<LocationScreen> {
           }
         } else {
           // Handle the case where weatherProvider is null.
-          return Text('Weather data unavailable');
+          return const Text('Weather data unavailable');
         }
 
       }),
