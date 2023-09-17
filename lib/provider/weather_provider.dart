@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 import '../models/mylocation.dart';
@@ -10,23 +11,53 @@ import '../weather_controller/weather_controller.dart';
 class WeatherProvider with ChangeNotifier {
   bool _isLoading = true;
   MyWeather? _myWeather;
-  WeatherModel _weatherModel = WeatherModel();
+
+  MyWeather get myWeather {
+    if (_myWeather != null) {
+      return _myWeather!;
+    } else {
+      return MyWeather();
+    }
+  }
+
+  set myWeather(MyWeather value) {
+    _myWeather = value;
+  }
+
+  WeatherModel weatherModel = WeatherModel();
 
   void getLocation() async {
+    bool serviceEnabled;
+    LocationPermission permission;
+// Test if location services are enabled.
+    serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied) {
+       print( 'Location Permission Denied');
+        return Future.error('Location permissions are denied');
+      }
+    }
+
+    if (permission == LocationPermission.deniedForever) {
+      // Permissions are denied forever, handle appropriately.
+      return Future.error(
+          'Location permissions are permanently denied, we cannot request permissions.');
+    }
     var status = await Permission.location.request();
     if (status.isGranted) {
       MyLocation location = MyLocation();
       await location.getLocation();
       double? lat = location.latitude;
       double? lon = location.longitude;
+      print("$lat & $lon");
       if (lat != null && lon != null) {
         await loadWeather(lat, lon);
       } else {
-        // Handle the case where latitude or longitude is null
         print("Error: Latitude or longitude is null");
       }
     } else if (status.isDenied) {
-      // Handle the case where the user denied location permissions
       print("User denied location permissions");
     }
   }
@@ -38,13 +69,13 @@ class WeatherProvider with ChangeNotifier {
       if (response.statusCode == 200) {
         _myWeather = MyWeather.fromJson(response.data);
       } else {
-        // Handle error or set _myWeather to null in case of an error
+        _myWeather = null;
       }
     } catch (e) {
-      // Handle the exception or set _myWeather to null in case of an error
       if (kDebugMode) {
         print(e);
       }
+      _myWeather = null;
     } finally {
       isLoading = false;
       notifyListeners();
@@ -59,20 +90,14 @@ class WeatherProvider with ChangeNotifier {
   Future<void> loadWeatherByCityName(String cityName) async {
     isLoading = true;
     await _loadWeatherCommon(
-        () => WeatherRepository().loadWeatherByCityName(cityName));
+            () => WeatherRepository().loadWeatherByCityName(cityName));
   }
 
-  MyWeather get myWeather => _myWeather!;
+
 
   bool get isLoading => _isLoading;
   set isLoading(bool value) {
     _isLoading = value;
-    notifyListeners();
-  }
-
-  WeatherModel get weatherModel => _weatherModel;
-  set weatherModel(WeatherModel value) {
-    _weatherModel = value;
     notifyListeners();
   }
 }

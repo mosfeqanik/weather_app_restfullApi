@@ -14,7 +14,7 @@ class LocationScreen extends StatefulWidget {
 }
 
 class _LocationScreenState extends State<LocationScreen> {
-  late double screenHeight;
+
 
   @override
   void initState() {
@@ -23,34 +23,43 @@ class _LocationScreenState extends State<LocationScreen> {
         Provider.of<WeatherProvider>(context, listen: false);
     WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
       weatherProvider.getLocation();
-      screenHeight = MediaQuery.of(context).size.height;
     });
   }
 
   @override
   Widget build(BuildContext context) {
+    double screenHeight = MediaQuery.of(context).size.height;
     return Scaffold(
         body: Container(
       decoration: const BoxDecoration(color: Colors.black26),
       child: Consumer<WeatherProvider>(builder: (_, myProvider, ___) {
-        return myProvider.isLoading == false
-            ? SafeArea(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    appBarIconWidget(myProvider, context, screenHeight),
-                    temperatureWidget(myProvider, screenHeight),
-                    messagePart(myProvider, screenHeight),
-                    SizedBox(
-                      height: 0.1 * screenHeight, // Adjust the height
-                    )
-                  ],
-                ),
-              )
-            : const Center(
-                child: CircularProgressIndicator(),
-              );
+        if (myProvider != null) {
+
+          // For example:
+          if (myProvider.isLoading) {
+            return const Center(child: CircularProgressIndicator());
+          } else {
+            // Access other properties or methods safely.
+            return SafeArea(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  appBarIconWidget(myProvider, context, screenHeight),
+                  temperatureWidget(myProvider, screenHeight),
+                  messagePart(myProvider, screenHeight),
+                  SizedBox(
+                    height: 0.1 * screenHeight, // Adjust the height
+                  )
+                ],
+              ),
+            );
+          }
+        } else {
+          // Handle the case where weatherProvider is null.
+          return Text('Weather data unavailable');
+        }
+
       }),
     ));
   }
