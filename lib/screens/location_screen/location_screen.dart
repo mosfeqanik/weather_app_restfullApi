@@ -14,46 +14,45 @@ class LocationScreen extends StatefulWidget {
 }
 
 class _LocationScreenState extends State<LocationScreen> {
+  late double screenHeight;
+
   @override
   void initState() {
     super.initState();
     WeatherProvider weatherProvider =
         Provider.of<WeatherProvider>(context, listen: false);
-    weatherProvider.getLocation();
+    WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
+      weatherProvider.getLocation();
+      screenHeight = MediaQuery.of(context).size.height;
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    // Get the screen height and width
-    double screenHeight = MediaQuery.of(context).size.height;
-
-    return Consumer<WeatherProvider>(
-      builder: (_, myProvider, ___) {
-        return Scaffold(
-          body: myProvider.isLoading == false
-              ? Container(
-                  decoration: const BoxDecoration(color: Colors.black26),
-                  child: SafeArea(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: <Widget>[
-                        appBarIconWidget(myProvider, context, screenHeight),
-                        temperatureWidget(myProvider, screenHeight),
-                        messagePart(myProvider, screenHeight),
-                        SizedBox(
-                          height: 0.1 * screenHeight, // Adjust the height
-                        )
-                      ],
-                    ),
-                  ),
-                )
-              : const Center(
-                  child: CircularProgressIndicator(),
+    return Scaffold(
+        body: Container(
+      decoration: const BoxDecoration(color: Colors.black26),
+      child: Consumer<WeatherProvider>(builder: (_, myProvider, ___) {
+        return myProvider.isLoading == false
+            ? SafeArea(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    appBarIconWidget(myProvider, context, screenHeight),
+                    temperatureWidget(myProvider, screenHeight),
+                    messagePart(myProvider, screenHeight),
+                    SizedBox(
+                      height: 0.1 * screenHeight, // Adjust the height
+                    )
+                  ],
                 ),
-        );
-      },
-    );
+              )
+            : const Center(
+                child: CircularProgressIndicator(),
+              );
+      }),
+    ));
   }
 
   Widget messagePart(WeatherProvider myProvider, double screenHeight) => Text(
@@ -69,7 +68,7 @@ class _LocationScreenState extends State<LocationScreen> {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
+          children: [
             Text(
               '${myProvider.myWeather.main.temp.toInt()} °',
               style: kTempTextStyle,
