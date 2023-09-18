@@ -1,4 +1,6 @@
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:dio/dio.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -26,7 +28,7 @@ class WeatherProvider with ChangeNotifier {
 
   WeatherModel weatherModel = WeatherModel();
 
-  void getLocation() async {
+  Future<String?> getLocation(BuildContext context) async {
     bool serviceEnabled;
     LocationPermission permission;
 // Test if location services are enabled.
@@ -35,7 +37,7 @@ class WeatherProvider with ChangeNotifier {
     if (permission == LocationPermission.denied) {
       permission = await Geolocator.requestPermission();
       if (permission == LocationPermission.denied) {
-       print( 'Location Permission Denied');
+        return 'Location Permission Denied';
         return Future.error('Location permissions are denied');
       }
     }
@@ -53,51 +55,64 @@ class WeatherProvider with ChangeNotifier {
       double? lon = location.longitude;
       print("$lat & $lon");
       if (lat != null && lon != null) {
-        await loadWeather(lat, lon);
+        await loadWeather(lat, lon, context);
       } else {
         print("Error: Latitude or longitude is null");
       }
     } else if (status.isDenied) {
-      print("User denied location permissions");
+      return "User denied location permissions";
     }
   }
 
-  Future<void> _loadWeatherCommon(
+  Future<String> _loadWeatherCommon(
       Future<Response> Function() loadFunction) async {
     try {
       final response = await loadFunction();
       if (response.statusCode == 200) {
         _myWeather = MyWeather.fromJson(response.data);
+        return "have a good day";
       } else {
         _myWeather = null;
+        return "Please check your internet and try again later";
       }
     } catch (e) {
       if (kDebugMode) {
         print(e);
       }
       _myWeather = null;
+      return "Please check your internet and try again later";
     } finally {
       isLoading = false;
       notifyListeners();
+      return "Please check your internet and try again later";
     }
   }
 
-  Future<void> loadWeather(double lat, double lon) async {
-    isLoading = true;
-    await _loadWeatherCommon(() => WeatherRepository().loadWeather(lat, lon));
-  }
-
-  Future<void> loadWeatherByCityName(String cityName) async {
+  Future<void> loadWeather(double lat, double lon, BuildContext context) async {
     isLoading = true;
     await _loadWeatherCommon(
-            () => WeatherRepository().loadWeatherByCityName(cityName));
+        () => WeatherRepository().loadWeather(lat, lon, context));
   }
 
-
+  Future<void> loadWeatherByCityName(
+      String cityName, BuildContext context) async {
+    isLoading = true;
+    await _loadWeatherCommon(
+        () => WeatherRepository().loadWeatherByCityName(cityName, context));
+  }
 
   bool get isLoading => _isLoading;
   set isLoading(bool value) {
     _isLoading = value;
     notifyListeners();
+  }
+
+  Future<bool> checkInternetConnectivity() async {
+    final ConnectivityResult result = await Connectivity().checkConnectivity();
+    if (result == ConnectivityResult.none) {
+      return false; // No internet connection
+    } else {
+      return true; // Internet connection is available
+    }
   }
 }

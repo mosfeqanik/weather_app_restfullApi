@@ -39,7 +39,8 @@ dependencies:
   dio:
   provider:
   permission_handler:
-
+  top_snackbar_flutter: ^3.1.0
+  connectivity_plus: ^4.0.2
 dev_dependencies:
   flutter_test:
     sdk: flutter

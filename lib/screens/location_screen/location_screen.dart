@@ -14,15 +14,17 @@ class LocationScreen extends StatefulWidget {
 }
 
 class _LocationScreenState extends State<LocationScreen> {
-
+  bool isInternetAvailable = false;
 
   @override
   void initState() {
     super.initState();
     WeatherProvider weatherProvider =
         Provider.of<WeatherProvider>(context, listen: false);
-    WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
-      weatherProvider.getLocation();
+    BuildContext currentContext = context;
+    WidgetsBinding.instance.addPostFrameCallback((timeStamp) async {
+      isInternetAvailable = await weatherProvider.checkInternetConnectivity();
+      await weatherProvider.getLocation(currentContext);
     });
   }
 
@@ -34,10 +36,11 @@ class _LocationScreenState extends State<LocationScreen> {
       decoration: const BoxDecoration(color: Colors.black26),
       child: Consumer<WeatherProvider>(builder: (_, myProvider, ___) {
         if (myProvider != null) {
-
           // For example:
           if (myProvider.isLoading) {
             return const Center(child: CircularProgressIndicator());
+          } else if (isInternetAvailable && !myProvider.isLoading) {
+            return const SafeArea(child: Text('No internet'));
           } else {
             // Access other properties or methods safely.
             return SafeArea(
@@ -59,38 +62,43 @@ class _LocationScreenState extends State<LocationScreen> {
           // Handle the case where weatherProvider is null.
           return const Text('Weather data unavailable');
         }
-
       }),
     ));
   }
 
   Widget messagePart(WeatherProvider myProvider, double screenHeight) => Text(
         myProvider.weatherModel
-            .getMessage(myProvider.myWeather.main.temp.toInt()),
+            .getMessage(myProvider.myWeather.main?.temp?.toInt() ?? 900),
         textAlign: TextAlign.center,
         style: kMessageTextStyle,
       );
 
-  Widget temperatureWidget(WeatherProvider myProvider, double screenWidth) =>
-      Padding(
-        padding: EdgeInsets.only(left: 0.05 * screenWidth), // Adjust padding
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              '${myProvider.myWeather.main.temp.toInt()} °',
+  Widget temperatureWidget(WeatherProvider myProvider, double screenWidth) {
+    return Padding(
+      padding: EdgeInsets.only(left: 0.05 * screenWidth), // Adjust padding
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Expanded(
+            child: Text(
+              "${myProvider.myWeather.main?.temp?.toInt() ?? "#"}",
+              maxLines: 3,
               style: kTempTextStyle,
             ),
-            Text(
+          ),
+          Expanded(
+            child: Text(
               myProvider.weatherModel
-                  .getWeatherIcon(myProvider.myWeather.weather[0].id),
+                  .getWeatherIcon(myProvider.myWeather.weather?[0].id ?? 900),
               style: kConditionTextStyle,
               maxLines: 2,
             ),
-          ],
-        ),
-      );
+          ),
+        ],
+      ),
+    );
+  }
 
   Widget appBarIconWidget(WeatherProvider myProvider, BuildContext context,
           double screenHeight) =>
@@ -100,7 +108,7 @@ class _LocationScreenState extends State<LocationScreen> {
           TextButton(
             onPressed: () {
               myProvider.isLoading = true;
-              myProvider.getLocation();
+              myProvider.getLocation(context);
             },
             child: Icon(
               Icons.near_me,
@@ -118,7 +126,7 @@ class _LocationScreenState extends State<LocationScreen> {
                   }),
                 );
                 myProvider.isLoading = true;
-                myProvider.loadWeatherByCityName(cityName);
+                myProvider.loadWeatherByCityName(cityName, context);
               } catch (error) {
                 if (kDebugMode) {
                   print(error);

@@ -21,12 +21,16 @@ class WeatherModel {
   }
 
   String getMessage(int temp) {
-    if (temp > 25) {
+    if (temp == 900) {
+      return 'have a great day';
+    } else if (temp > 25) {
       return 'It\'s a great day for ice cream! 🍦';
     } else if (temp > 20) {
       return 'Perfect weather for shorts and a t-shirt! 👕';
     } else if (temp < 10) {
       return 'Bundle up with a scarf 🧣 and gloves🧤!';
+    } else if (temp == 0) {
+      return 'please check you internet connect';
     } else {
       return 'Bring a jacket 🧥, just in case! ';
     }
